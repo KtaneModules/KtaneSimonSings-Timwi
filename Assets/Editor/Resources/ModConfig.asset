@@ -13,7 +13,7 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   id: SimonSings
   title: Simon Sings
-  description: "<description>\n\nModule created by Timwi.\n\n[url=http://ktane.timwi.de/PDF/Simon%20Sings.pdf]Manual
+  description: "<description>\n\nModule created by MarioXMan and Timwi.\n\n[url=http://ktane.timwi.de/PDF/Simon%20Sings.pdf]Manual
     PDF[/url]\n[url=http://ktane.timwi.de/HTML/Simon%20Sings.html]Manual
     HTML[/url]"
   version: 1.0
