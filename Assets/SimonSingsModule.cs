@@ -70,11 +70,8 @@ public class SimonSingsModule : MonoBehaviour
         {
             // If we can’t find a color combination after 1000 attempts,
             // give up and use the defaults. This should happen very rarely.
-            for (int i = 0; i < keyIndices.Length; i++)
-            {
-                hues.AddRange(defaultHues);
-                goto done;
-            }
+            hues.AddRange(defaultHues);
+            goto done;
         }
 
         for (int i = 0; i < keyIndices.Length; i++)
@@ -174,6 +171,14 @@ public class SimonSingsModule : MonoBehaviour
 
             var keys = Enumerable.Range(0, 12).ToList().Shuffle();
             _flashingColors = keys.Take(8).ToArray();
+
+            // Prevent a D from appearing right after a B (special case that would be in conflict)
+            var dPos = Array.IndexOf(_flashingColors, 2);
+            if (dPos > 0 && _flashingColors[dPos - 1] == 11)
+            {
+                _flashingColors[dPos - 1] = 2;
+                _flashingColors[dPos] = 11;
+            }
 
             var bits = new List<bool>();
             for (int i = 0; i < _flashingColors.Length; i++)
