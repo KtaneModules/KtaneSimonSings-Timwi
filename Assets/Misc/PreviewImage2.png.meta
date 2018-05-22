@@ -1,6 +1,6 @@
 fileFormatVersion: 2
-guid: bd5c1f4881f57d54481b44e4c8a7779a
-timeCreated: 1527021562
+guid: 9ce45b61f5b41a345a7d97650dc31331
+timeCreated: 1527021776
 licenseType: Free
 TextureImporter:
   fileIDToRecycleName: {}
@@ -21,12 +21,12 @@ TextureImporter:
     externalNormalMap: 0
     heightScale: 0.25
     normalMapFilter: 0
-  isReadable: 1
+  isReadable: 0
   grayScaleToAlpha: 0
   generateCubemap: 6
   cubemapConvolution: 0
   seamlessCubemap: 0
-  textureFormat: -1
+  textureFormat: 1
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
@@ -54,15 +54,7 @@ TextureImporter:
   maxTextureSizeSet: 0
   compressionQualitySet: 0
   textureFormatSet: 0
-  platformSettings:
-  - buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
-    textureFormat: -1
-    textureCompression: 0
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
+  platformSettings: []
   spriteSheet:
     serializedVersion: 2
     sprites: []
