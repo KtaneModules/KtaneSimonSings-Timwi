@@ -273,7 +273,7 @@ public class SimonSingsModule : MonoBehaviour
     {
         var keys = new List<KMSelectable>();
         var match = Regex.Match(command.Trim().ToUpperInvariant(),
-            "^(?:press |play |submit |)((?: *(?:left|right|l|r) ?(?:C#?|D[b#]?|Eb?|F#?|G[b#]?|A[b#]?|Bb?),?)+)$",
+            "^(?:press |play |submit |sing |)((?:(?:left|right|l|r)[ ,;]?(?:C#?|D[b#]?|Eb?|F#?|G[b#]?|A[b#]?|Bb?)[ ,;]*)+)$",
             RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
         if (!match.Success)
@@ -281,17 +281,17 @@ public class SimonSingsModule : MonoBehaviour
 
         var pieces = match.Groups[1].Value.Trim()
             .Replace("DB", "C#").Replace("EB", "D#").Replace("GB", "F#").Replace("AB", "G#").Replace("BB", "A#")
-            .Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+            .Split(new[] { ' ', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
         var left = false;
-        for (int i = 0; i < pieces.Length; i++)
+
+        foreach (var piece in pieces)
         {
-            if (pieces[i].StartsWith("L"))
-                left = true;
-            if (pieces[i].StartsWith("R"))
-                left = false;
-            for (int j = 0; j < _keyNames.Length; j++)
-                if (pieces[i].EndsWith(_keyNames[j]) || pieces[i].EndsWith(_keyNames[j] + ","))
-                    keys.Add(Keys[j + (left ? 0 : 12)]);
+	        left |= piece.StartsWith("L");
+	        left &= !piece.StartsWith("R");
+
+	        for (var j = 0; j < _keyNames.Length; j++)
+		        if (piece.EndsWith(_keyNames[j]))
+			        keys.Add(Keys[j + (left ? 0 : 12)]);
         }
 
         return keys;
