@@ -286,12 +286,12 @@ public class SimonSingsModule : MonoBehaviour
 
         foreach (var piece in pieces)
         {
-	        left |= piece.StartsWith("L");
-	        left &= !piece.StartsWith("R");
+            left |= piece.StartsWith("L");
+            left &= !piece.StartsWith("R");
 
-	        for (var j = 0; j < _keyNames.Length; j++)
-		        if (piece.EndsWith(_keyNames[j]))
-			        keys.Add(Keys[j + (left ? 0 : 12)]);
+            for (var j = 0; j < _keyNames.Length; j++)
+                if (piece.EndsWith(_keyNames[j]))
+                    keys.Add(Keys[j + (left ? 0 : 12)]);
         }
 
         return keys;
