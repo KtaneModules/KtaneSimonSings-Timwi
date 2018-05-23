@@ -266,36 +266,34 @@ public class SimonSingsModule : MonoBehaviour
     }
 
 #pragma warning disable 0414
-	private string TwitchHelpMessage = "Play your answer with !{0} play left G# E. (Keys are C, C#, D, D#, E, F, F#, G, G#, A, A#, B. They have to be pressed in pairs.)";
+    private readonly string TwitchHelpMessage = "Play your answer with “!{0} play left G# right E”. (Keys are C, C#, D, D#, E, F, F#, G, G#, A, A#, B.)";
 #pragma warning restore 0414
 
-	private KMSelectable[] ProcessTwitchCommand(string command)
-	{
-		var keys = new List<KMSelectable>();
-		var match = Regex.Match(command,
-			"^(?:press|play) (left|right|l|r)((?: (?:C#?|D[b#]?|Eb?|F#?|G[b#]?|A[b#]?|Bb?) (?:C#?|D[b#]?|Eb?|F#?|G[b#]?|A[b#]?|Bb?)){1,3})$",
-			RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+    private IEnumerable<KMSelectable> ProcessTwitchCommand(string command)
+    {
+        var keys = new List<KMSelectable>();
+        var match = Regex.Match(command.Trim().ToUpperInvariant(),
+            "^(?:press|play|submit) ((?: *(?:left|right|l|r) ?(?:C#?|D[b#]?|Eb?|F#?|G[b#]?|A[b#]?|Bb?),?)+)$",
+            RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
-		if (!match.Success) return null;
+        if (!match.Success)
+            return null;
 
-		var right = match.Groups[1].Value.ToLowerInvariant().StartsWith("r");
-		var notes = match.Groups[2].Value.Trim().ToUpperInvariant().Replace("DB","C#").Replace("EB","D#").Replace("GB","F#")
-			.Replace("AB","G#").Replace("BB","A#").Split(' ');
+        var pieces = match.Groups[1].Value.Trim()
+            .Replace("DB", "C#").Replace("EB", "D#").Replace("GB", "F#").Replace("AB", "G#").Replace("BB", "A#")
+            .Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+        var left = false;
+        for (int i = 0; i < pieces.Length; i++)
+        {
+            if (pieces[i].StartsWith("L"))
+                left = true;
+            if (pieces[i].StartsWith("R"))
+                left = false;
+            for (int j = 0; j < _keyNames.Length; j++)
+                if (pieces[i].EndsWith(_keyNames[j]) || pieces[i].EndsWith(_keyNames[j] + ","))
+                    keys.Add(Keys[j + (left ? 0 : 12)]);
+        }
 
-		for (var i = 0; i < notes.Length; i += 2)
-		{
-			var key1 = _keyNames.ToList().IndexOf(notes[i]);
-			var key2 = _keyNames.ToList().IndexOf(notes[i + 1]);
-
-			if (right)
-				key1 += 12;
-			else
-				key2 += 12;
-
-			keys.Add(Keys[key1]);
-			keys.Add(Keys[key2]);
-		}
-
-		return keys.Count > 0 ? keys.ToArray() : null;
-	}
+        return keys;
+    }
 }
