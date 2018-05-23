@@ -273,7 +273,7 @@ public class SimonSingsModule : MonoBehaviour
     {
         var keys = new List<KMSelectable>();
         var match = Regex.Match(command.Trim().ToUpperInvariant(),
-            "^(?:press|play|submit) ((?: *(?:left|right|l|r) ?(?:C#?|D[b#]?|Eb?|F#?|G[b#]?|A[b#]?|Bb?),?)+)$",
+            "^(?:press |play |submit |)((?: *(?:left|right|l|r) ?(?:C#?|D[b#]?|Eb?|F#?|G[b#]?|A[b#]?|Bb?),?)+)$",
             RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
         if (!match.Success)
