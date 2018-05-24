@@ -37,16 +37,17 @@ public class SimonSingsModule : MonoBehaviour
     private Color[] _keyColors;
 
     private static readonly string[] _keyNames = @"C,C#,D,D#,E,F,F#,G,G#,A,A#,B".Split(',');
+    private static readonly int[] _whiteKeys = new[] { 0, 2, 4, 5, 7, 9, 11 };
+    private static readonly int[] _blackKeys = new[] { 1, 3, 6, 8, 10 };
+    private static readonly int[] _primes = new[] { 2, 3, 5, 7, 11, 13 };
 
     void Start()
     {
         _moduleId = _moduleIdCounter++;
         _keyColors = new Color[12];
 
-        // White keys
-        assignKeyColors(new[] { 0, 2, 4, 5, 7, 9, 11 }, .9f, 1f, new float[] { 35, 288, 234, 339, 85, 131, 185 });
-        // Black keys
-        assignKeyColors(new[] { 1, 3, 6, 8, 10 }, .4f, .5f, new float[] { 359, 46, 120, 311, 175 });
+        assignKeyColors(_whiteKeys, .9f, 1f, new float[] { 35, 288, 234, 339, 85, 131, 185 });
+        assignKeyColors(_blackKeys, .4f, .5f, new float[] { 359, 46, 120, 311, 175 });
 
         for (int i = 0; i < Keys.Length; i++)
             Keys[i].OnInteract = getKeyPressHandler(i);
@@ -189,13 +190,13 @@ public class SimonSingsModule : MonoBehaviour
                     case 0: // C
                         bits.Add(i == 0 || i == 3 || i == 4 || i == 7);
                         break;
-                    case 1: // C#
+                    case 1: // C♯/D♭
                         bits.Add(i == 1 || i == 2 || i == 5 || i == 6);
                         break;
                     case 2: // D
                         bits.Add(i == 0 ? Bomb.GetSerialNumberNumbers().Last() % 2 != 0 : !bits.Last());
                         break;
-                    case 3: // D#
+                    case 3: // D♯/E♭
                         bits.Add(i % 4 == Bomb.GetPortPlateCount() - 1);
                         break;
                     case 4: // E
@@ -204,19 +205,19 @@ public class SimonSingsModule : MonoBehaviour
                     case 5: // F
                         bits.Add(_curStage == 2);
                         break;
-                    case 6: // F#
+                    case 6: // F♯/G♭
                         bits.Add(_curStage == Bomb.GetSerialNumberLetters().Count() - 2);
                         break;
                     case 7: // G
-                        bits.Add(i == 0 || i == 4 ? Bomb.GetIndicators().Count() % 2 != 0 : new[] { 1, 3, 6, 8, 10 }.Contains(_flashingColors[4 * (i / 4)]));
+                        bits.Add(i == 0 || i == 4 ? Bomb.GetIndicators().Count() % 2 != 0 : _blackKeys.Contains(_flashingColors[4 * (i / 4)]));
                         break;
-                    case 8: // G#
-                        bits.Add(_curStage == 0 ? Bomb.GetPortCount() % 2 != 0 : new[] { 1, 3, 6, 8, 10 }.Any(key => prevFlashingColors.Contains(key)));
+                    case 8: // G♯/A♭
+                        bits.Add(_curStage == 0 ? Bomb.GetPortCount() % 2 != 0 : Enumerable.Range(0, 11).Any(ix => _blackKeys.Contains(prevFlashingColors[ix]) && _blackKeys.Contains(prevFlashingColors[ix + 1])));
                         break;
                     case 9: // A
-                        bits.Add(_curStage == 0 ? Bomb.GetOnIndicators().Count() % 2 == Bomb.GetOffIndicators().Count() % 2 : prevFirst < 2 || prevSecond < 2);
+                        bits.Add(_curStage == 0 ? Bomb.GetOnIndicators().Count() % 2 == Bomb.GetOffIndicators().Count() % 2 : prevFirst < 5 || prevSecond < 5);
                         break;
-                    case 10:    // A#
+                    case 10:    // A♯/B♭
                         bits.Add(Enumerable.Range(4 * (i / 4), 4).Any(n => n % 4 != i % 4 && (_flashingColors[n] == 5 || _flashingColors[n] == 6)));
                         break;
                     case 11:    // B
@@ -231,7 +232,7 @@ public class SimonSingsModule : MonoBehaviour
                 {
                     var curNumber = bits.Skip(4 * (i / 4)).Take(4).Aggregate(0, (p, n) => (p << 1) | (n ? 1 : 0));
                     var newNumber = curNumber | (1 << (3 - i % 4));
-                    if (new[] { 2, 3, 5, 7, 11, 13 }.Contains(newNumber))
+                    if (_primes.Contains(newNumber))
                         bits[i] = true;
                 }
             }
