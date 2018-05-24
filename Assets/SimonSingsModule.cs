@@ -44,10 +44,71 @@ public class SimonSingsModule : MonoBehaviour
     void Start()
     {
         _moduleId = _moduleIdCounter++;
-        _keyColors = new Color[12];
 
-        assignKeyColors(_whiteKeys, .9f, 1f, new float[] { 35, 288, 234, 339, 85, 131, 185 });
-        assignKeyColors(_blackKeys, .4f, .5f, new float[] { 359, 46, 120, 311, 175 });
+        const float minDist = .55f;
+
+        var colors = Enumerable.Range(0, 12).Select(_ => new Color(Rnd.Range(0, 1f), Rnd.Range(0, 1f), Rnd.Range(0, 1f))).ToArray();
+
+        const int iterations = 12;
+        for (int iter = 0; iter < iterations; iter++)
+        {
+            var deltas = new Color[colors.Length];
+            for (int i = 0; i < colors.Length; i++)
+            {
+                for (int j = 0; j < i; j++)
+                {
+                    var d = colorDist(colors[i], colors[j]);
+                    if (d < minDist)
+                    {
+                        var val = normalize(colors[i] - colors[j]) * (minDist - d) * (1 + (colors[i].r * colors[j].r * .3f)) * (1 + (colors[i].g * colors[j].g * .6f)) * (1 + (colors[i].b * colors[j].b * .1f));
+                        if (d == 0)
+                        {
+                            val = new Color(Rnd.Range(0, 1f), Rnd.Range(0, 1f), Rnd.Range(0, 1f));
+                            iter = 0;
+                        }
+                        deltas[i] += val;
+                        deltas[j] -= val;
+                    }
+                }
+            }
+            for (int i = 0; i < colors.Length; i++)
+            {
+                var nPt = colors[i] + deltas[i];
+                colors[i] = new Color(clip(nPt.r), clip(nPt.g), clip(nPt.b));
+                if (colors[i] == new Color(0, 0, 0) || colors[i] == new Color(1, 1, 1))
+                {
+                    colors[i] = new Color(Rnd.Range(0, 1f), Rnd.Range(0, 1f), Rnd.Range(0, 1f));
+                    iter = 0;
+                }
+            }
+        }
+
+        for (int i = 0; i < colors.Length; i++)
+        {
+            float h, s, v;
+            Color.RGBToHSV(colors[i], out h, out s, out v);
+            v = (v * .8f) + .2f;
+            colors[i] = Color.HSVToRGB(h, s, v);
+        }
+
+        var sorted = colors.OrderBy(c => c.r * .3f + c.g * .6f + c.b * .1f).ToArray();
+        var blackColors = sorted.Subarray(0, 5).Shuffle();
+        var whiteColors = sorted.Subarray(5, 7).Shuffle();
+
+        Debug.LogFormat(@"<Simon Sings #{0}> White key colors: {1}.", _moduleId, whiteColors.JoinString(", "));
+        Debug.LogFormat(@"<Simon Sings #{0}> Black key colors: {1}.", _moduleId, blackColors.JoinString(", "));
+
+        _keyColors = new Color[12];
+        for (int i = 0; i < _whiteKeys.Length; i++)
+            _keyColors[_whiteKeys[i]] = whiteColors[i];
+        for (int i = 0; i < _blackKeys.Length; i++)
+            _keyColors[_blackKeys[i]] = blackColors[i];
+
+        for (int i = 0; i < _keyColors.Length; i++)
+        {
+            Keys[i].GetComponent<MeshRenderer>().material.color = _keyColors[i];
+            Keys[i + 12].GetComponent<MeshRenderer>().material.color = _keyColors[i];
+        }
 
         for (int i = 0; i < Keys.Length; i++)
             Keys[i].OnInteract = getKeyPressHandler(i);
@@ -56,66 +117,26 @@ public class SimonSingsModule : MonoBehaviour
         Debug.LogFormat(@"[Simon Sings #{0}] Serial number {1} a vowel, so start on the {2}.", _moduleId, _hasVowel ? "contains" : "does not contain", _hasVowel ? "left" : "right");
 
         _keysToPress = new List<int>();
-        initStage(0);
+        initStage(0, 0);
         StartCoroutine(flashing());
     }
 
-    private void assignKeyColors(int[] keyIndices, float minLightness, float maxLightness, float[] defaultHues)
+    private static Color normalize(Color c)
     {
-        var numTotalTries = 0;
-        var hues = new List<float>();
-
-        tryEverythingAgain:
-        numTotalTries++;
-        hues.Clear();
-        if (numTotalTries > 1000)
-        {
-            // If we can’t find a color combination after 1000 attempts,
-            // give up and use the defaults. This should happen very rarely.
-            hues.AddRange(defaultHues);
-            goto done;
-        }
-
-        for (int i = 0; i < keyIndices.Length; i++)
-        {
-            var numTries = 0;
-
-            tryAgain:
-            numTries++;
-            if (numTries > 10)
-                goto tryEverythingAgain;
-            var hue = Rnd.Range(0f, 360f);
-
-            for (int j = 0; j < hues.Count; j++)
-            {
-                var ds = sphericalDistance(hue, 10, hues[j], 10);
-                if (ds < .8f)
-                    goto tryAgain;
-            }
-
-            hues.Add(hue);
-        }
-
-        done:
-        for (int i = 0; i < keyIndices.Length; i++)
-        {
-            Debug.LogFormat(@"[Simon Sings #{0}] Hue for {1} is {2:0}.", _moduleId, _keyNames[keyIndices[i]], hues[i]);
-            var color = Color.HSVToRGB(hues[i] / 360, Rnd.Range(.6f, .8f), Rnd.Range(minLightness, maxLightness));
-            Keys[keyIndices[i]].GetComponent<MeshRenderer>().material.color = color;
-            Keys[keyIndices[i] + 12].GetComponent<MeshRenderer>().material.color = color;
-            _keyColors[keyIndices[i]] = color;
-        }
+        var d = Mathf.Sqrt(sqr(c.r) + sqr(c.g) + sqr(c.b));
+        if (d == 0)
+            return new Color(0, 0, 0);
+        return new Color(c.r / d, c.g / d, c.b / d);
     }
 
-    private static double sphericalDistance(float long1, float lat1, float long2, float lat2)
+    private static float clip(float v)
     {
-        var dl = Mathf.Abs(lat1 - lat2);
-        var c1 = Mathf.Cos(long1 * Mathf.PI / 180);
-        var c2 = Mathf.Cos(long2 * Mathf.PI / 180);
-        var s1 = Mathf.Sin(long1 * Mathf.PI / 180);
-        var s2 = Mathf.Sin(long2 * Mathf.PI / 180);
-        var ds = Mathf.Atan2(Mathf.Sqrt(sqr(c2 * Mathf.Sin(dl)) + sqr(c1 * s2 - s1 * c2 * Mathf.Cos(dl))), s1 * s2 + c1 * c2 * Mathf.Cos(dl));
-        return ds;
+        return v < 0 ? 0 : v > 1 ? 1 : v;
+    }
+
+    private static float colorDist(Color c1, Color c2)
+    {
+        return Mathf.Sqrt((sqr(c1.r - c2.r)) + (sqr(c1.g - c2.g)) + (sqr(c1.b - c2.b)));
     }
 
     private static float sqr(float value)
@@ -142,7 +163,7 @@ public class SimonSingsModule : MonoBehaviour
                 Debug.LogFormat(@"[Simon Sings #{0}] Pressed: {1}. Correct!", _moduleId, keyName(i));
                 _subprogress++;
                 if (_subprogress == 2 * (_curStage + 1))
-                    initStage(_curStage + 1);
+                    initStage(_curStage + 1, i);
             }
 
             return false;
@@ -154,7 +175,7 @@ public class SimonSingsModule : MonoBehaviour
         return string.Format("{0} {1}", key >= 12 ? "right" : "left", _keyNames[key % 12]);
     }
 
-    void initStage(int stage)
+    void initStage(int stage, int lastPressed)
     {
         _curStage = stage;
         for (int i = 0; i < StatusLeds.Length; i++)
@@ -164,6 +185,7 @@ public class SimonSingsModule : MonoBehaviour
             Debug.LogFormat(@"[Simon Sings #{0}] Module solved.", _moduleId);
             Module.HandlePass();
             _isSolved = true;
+            StartCoroutine(solveAnimation(lastPressed));
         }
         else
         {
@@ -212,7 +234,7 @@ public class SimonSingsModule : MonoBehaviour
                         bits.Add(i == 0 || i == 4 ? Bomb.GetIndicators().Count() % 2 != 0 : _blackKeys.Contains(_flashingColors[4 * (i / 4)]));
                         break;
                     case 8: // G♯/A♭
-                        bits.Add(_curStage == 0 ? Bomb.GetPortCount() % 2 != 0 : Enumerable.Range(0, 11).Any(ix => _blackKeys.Contains(prevFlashingColors[ix]) && _blackKeys.Contains(prevFlashingColors[ix + 1])));
+                        bits.Add(_curStage == 0 ? Bomb.GetPortCount() % 2 != 0 : Enumerable.Range(0, 7).Any(ix => _blackKeys.Contains(prevFlashingColors[ix]) && _blackKeys.Contains(prevFlashingColors[ix + 1])));
                         break;
                     case 9: // A
                         bits.Add(_curStage == 0 ? Bomb.GetOnIndicators().Count() % 2 == Bomb.GetOffIndicators().Count() % 2 : prevFirst < 5 || prevSecond < 5);
@@ -250,16 +272,43 @@ public class SimonSingsModule : MonoBehaviour
         }
     }
 
+    private IEnumerator solveAnimation(int startAt)
+    {
+        for (int i = 0; i < 12; i++)
+        {
+            yield return new WaitForSeconds(.05f);
+            for (int j = 0; j < 24; j++)
+                Keys[(i + j) % 24].GetComponent<MeshRenderer>().material.color = _keyColors[j % 12];
+        }
+
+        var black = new Color(0x26 / 255f, 0x26 / 255f, 0x26 / 255f);
+        var white = new Color(0xD0 / 255f, 0xD0 / 255f, 0xD0 / 255f);
+        for (int i = 0; i < 12; i++)
+        {
+            yield return new WaitForSeconds(.025f);
+            Keys[i + startAt].GetComponent<MeshRenderer>().material.color = _blackKeys.Contains((i + startAt) % 12) ? white : black;
+            Keys[(23 - i + startAt) % 24].GetComponent<MeshRenderer>().material.color = _blackKeys.Contains((23 - i + startAt) % 12) ? white : black;
+        }
+        for (int i = 11; i >= 0; i--)
+        {
+            yield return new WaitForSeconds(.025f);
+            Keys[i + startAt].GetComponent<MeshRenderer>().material.color = _blackKeys.Contains((i + startAt) % 12) ? black : white;
+            Keys[(23 - i + startAt) % 24].GetComponent<MeshRenderer>().material.color = _blackKeys.Contains((23 - i + startAt) % 12) ? black : white;
+        }
+    }
+
     private IEnumerator flashing()
     {
-        while (!_isSolved)
+        while (true)
         {
             for (int i = 0; i < _flashingColors.Length; i++)
             {
                 CentralLed.material.color = _keyColors[_flashingColors[i]];
-                yield return new WaitForSeconds(.7f);
-                CentralLed.material.color = new Color(0x27 / 255f, 0x22 / 255f, 0x1e / 255f);
+                yield return new WaitForSeconds(1.2f);
+                CentralLed.material.color = new Color(0x1e / 255f, 0x1a / 255f, 0x17 / 255f);
                 yield return new WaitForSeconds(.1f);
+                if (_isSolved)
+                    yield break;
             }
 
             yield return new WaitForSeconds(1.2f);
