@@ -149,6 +149,7 @@ public class SimonSingsModule : MonoBehaviour
         return delegate
         {
             Keys[i].AddInteractionPunch(.5f);
+            Audio.PlaySoundAtTransform((i < 12 ? "Aah" : "Ooh") + (i % 12), Keys[i].transform);
             if (_isSolved)
                 return false;
 
@@ -274,9 +275,12 @@ public class SimonSingsModule : MonoBehaviour
 
     private IEnumerator solveAnimation(int startAt)
     {
+        yield return new WaitForSeconds(1f);
+        Audio.PlaySoundAtTransform("Victory", transform);
+
         for (int i = 0; i < 12; i++)
         {
-            yield return new WaitForSeconds(.05f);
+            yield return new WaitForSeconds(.06f);
             for (int j = 0; j < 24; j++)
                 Keys[(i + j) % 24].GetComponent<MeshRenderer>().material.color = _keyColors[j % 12];
         }
@@ -285,14 +289,14 @@ public class SimonSingsModule : MonoBehaviour
         var white = new Color(0xD0 / 255f, 0xD0 / 255f, 0xD0 / 255f);
         for (int i = 0; i < 12; i++)
         {
-            yield return new WaitForSeconds(.025f);
-            Keys[i + startAt].GetComponent<MeshRenderer>().material.color = _blackKeys.Contains((i + startAt) % 12) ? white : black;
+            yield return new WaitForSeconds(.03f);
+            Keys[(i + startAt) % 24].GetComponent<MeshRenderer>().material.color = _blackKeys.Contains((i + startAt) % 12) ? white : black;
             Keys[(23 - i + startAt) % 24].GetComponent<MeshRenderer>().material.color = _blackKeys.Contains((23 - i + startAt) % 12) ? white : black;
         }
         for (int i = 11; i >= 0; i--)
         {
-            yield return new WaitForSeconds(.025f);
-            Keys[i + startAt].GetComponent<MeshRenderer>().material.color = _blackKeys.Contains((i + startAt) % 12) ? black : white;
+            yield return new WaitForSeconds(.03f);
+            Keys[(i + startAt) % 24].GetComponent<MeshRenderer>().material.color = _blackKeys.Contains((i + startAt) % 12) ? black : white;
             Keys[(23 - i + startAt) % 24].GetComponent<MeshRenderer>().material.color = _blackKeys.Contains((23 - i + startAt) % 12) ? black : white;
         }
     }
@@ -321,6 +325,12 @@ public class SimonSingsModule : MonoBehaviour
 
     private IEnumerable<KMSelectable> ProcessTwitchCommand(string command)
     {
+        if (command == "autosolve")
+        {
+            _isSolved = true;
+            StartCoroutine(solveAnimation(0));
+        }
+
         var keys = new List<KMSelectable>();
         var match = Regex.Match(command.Trim().ToUpperInvariant(),
             "^(?:press |play |submit |sing |)((?:(?:left|right|l|r)[ ,;]?(?:C#?|D[b#]?|Eb?|F#?|G[b#]?|A[b#]?|Bb?)[ ,;]*)+)$",
