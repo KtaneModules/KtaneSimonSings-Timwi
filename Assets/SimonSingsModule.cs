@@ -238,7 +238,7 @@ public class SimonSingsModule : MonoBehaviour
                         bits.Add(_curStage == 0 ? Bomb.GetPortCount() % 2 != 0 : Enumerable.Range(0, 7).Any(ix => _blackKeys.Contains(prevFlashingColors[ix]) && _blackKeys.Contains(prevFlashingColors[ix + 1])));
                         break;
                     case 9: // A
-                        bits.Add(_curStage == 0 ? Bomb.GetOnIndicators().Count() % 2 == Bomb.GetOffIndicators().Count() % 2 : prevFirst < 5 || prevSecond < 5);
+                        bits.Add(_curStage == 0 ? Bomb.GetIndicators().Count() % 2 == 0 : prevFirst < 5 || prevSecond < 5);
                         break;
                     case 10:    // A♯/B♭
                         bits.Add(Enumerable.Range(4 * (i / 4), 4).Any(n => n % 4 != i % 4 && (_flashingColors[n] == 5 || _flashingColors[n] == 6)));
