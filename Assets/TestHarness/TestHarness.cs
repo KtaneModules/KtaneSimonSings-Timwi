@@ -854,6 +854,7 @@ public class TestHarness : MonoBehaviour
         o.transform.localRotation = Quaternion.Euler(new Vector3(130, -30, 0));
         testLight = o.AddComponent<Light>();
         testLight.type = LightType.Directional;
+        testLight.intensity = .75f;
     }
 
     public void TurnLightsOn()
