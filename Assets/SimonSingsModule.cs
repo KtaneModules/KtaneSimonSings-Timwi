@@ -36,70 +36,45 @@ public class SimonSingsModule : MonoBehaviour
     private bool _isSolved;
     private Color[] _keyColors;
 
-    private static readonly Color[] _whiteKeyColors = new Color[] {new Color(.6f, .6f, .6f), new Color(1, 0, 0), new Color(0, 1, 0), new Color(0, 0, 1), new Color(1, 1, 0), new Color(1, 0, 1), new Color(0, .8f, .8f), new Color(1, 1, 1), new Color(.82f, .75f, .62f), new Color(.68f, 1, .18f), new Color(.5f, .5f, 1), new Color(1, .72f, .8f), new Color(.4f, .8f, .6f), new Color(.57f, .85f, 1)};
-    private static readonly Color[] _blackKeyColors = new Color[] { new Color(0, 0, .5f), new Color(0, .4f, .4f), new Color(.65f, .34f, 0), new Color(.3f, 0, 0), new Color(.27f, 0, .27f), new Color(0, .23f, 0), new Color(.2f, .2f, .2f), new Color(.5f, .5f, 0) };
+    private static readonly Color[] _whiteKeyColors = {
+        new Color(204/255f, 210/255f, 213/255f),
+        new Color(227/255f, 54/255f, 54/255f),
+        new Color(60/255f, 197/255f, 60/255f),
+        new Color(75/255f, 75/255f, 255/255f),
+        new Color(212/255f, 212/255f, 54/255f),
+        new Color(219/255f, 60/255f, 184/255f),
+        new Color(0/255f, 204/255f, 228/255f),
+        new Color(227/255f, 155/255f, 47/255f),
+        new Color(221/255f, 197/255f, 154/255f),
+        new Color(163/255f, 246/255f, 58/255f),
+        new Color(118/255f, 144/255f, 255/255f),
+        new Color(248/255f, 176/255f, 197/255f),
+        new Color(129/255f, 227/255f, 172/255f),
+        new Color(188/255f, 148/255f, 255/255f)
+    };
+
+    private static readonly Color[] _blackKeyColors = {
+        new Color(18/255f, 18/255f, 146/255f),
+        new Color(0/255f, 102/255f, 102/255f),
+        new Color(152/255f, 92/255f, 25/255f),
+        new Color(114/255f, 2/255f, 2/255f),
+        new Color(83/255f, 19/255f, 83/255f),
+        new Color(18/255f, 74/255f, 18/255f),
+        new Color(69/255f, 69/255f, 69/255f),
+        new Color(125/255f, 125/255f, 16/255f)
+    };
+
     private static readonly string[] _keyNames = @"C,C#,D,D#,E,F,F#,G,G#,A,A#,B".Split(',');
     private static readonly int[] _whiteKeys = new[] { 0, 2, 4, 5, 7, 9, 11 };
     private static readonly int[] _blackKeys = new[] { 1, 3, 6, 8, 10 };
     private static readonly int[] _primes = new[] { 2, 3, 5, 7, 11, 13 };
-    
 
     void Start()
     {
         _moduleId = _moduleIdCounter++;
 
-        const float minDist = .55f;
-
-        var white = _whiteKeyColors.ToList();
-        var black = _blackKeyColors.ToList();
-
-        var colors = Enumerable.Range(0, 12).Select(i => i < 5 ? PickRandomFrom(black) : PickRandomFrom(white)).ToArray();
-
-        /* const int iterations = 12;
-        for (int iter = 0; iter < iterations; iter++)
-        {
-            var deltas = new Color[colors.Length];
-            for (int i = 0; i < colors.Length; i++)
-            {
-                for (int j = 0; j < i; j++)
-                {
-                    var d = colorDist(colors[i], colors[j]);
-                    if (d < minDist)
-                    {
-                        var val = normalize(colors[i] - colors[j]) * (minDist - d) * (1 + (colors[i].r * colors[j].r * .3f)) * (1 + (colors[i].g * colors[j].g * .6f)) * (1 + (colors[i].b * colors[j].b * .1f));
-                        if (d == 0)
-                        {
-                            val = new Color(Rnd.Range(0, 1f), Rnd.Range(0, 1f), Rnd.Range(0, 1f));
-                            iter = 0;
-                        }
-                        deltas[i] += val;
-                        deltas[j] -= val;
-                    }
-                }
-            }
-            for (int i = 0; i < colors.Length; i++)
-            {
-                var nPt = colors[i] + deltas[i];
-                colors[i] = new Color(clip(nPt.r), clip(nPt.g), clip(nPt.b));
-                if (colors[i] == new Color(0, 0, 0) || colors[i] == new Color(1, 1, 1))
-                {
-                    colors[i] = new Color(Rnd.Range(0, 1f), Rnd.Range(0, 1f), Rnd.Range(0, 1f));
-                    iter = 0;
-                }
-            }
-        } */
-
-        for (int i = 0; i < colors.Length; i++)
-        {
-            float h, s, v;
-            Color.RGBToHSV(colors[i], out h, out s, out v);
-            v = (v * .8f) + .2f;
-            colors[i] = Color.HSVToRGB(h, s, v);
-        }
-
-        // var sorted = colors.OrderBy(c => c.r * .3f + c.g * .6f + c.b * .1f).ToArray();
-        var blackColors = colors.Subarray(0, 5).Shuffle();
-        var whiteColors = colors.Subarray(5, 7).Shuffle();
+        var whiteColors = _whiteKeyColors.ToList().Shuffle().Take(7).ToArray();
+        var blackColors = _blackKeyColors.ToList().Shuffle().Take(5).ToArray();
 
         Debug.LogFormat(@"<Simon Sings #{0}> White key colors: {1}.", _moduleId, whiteColors.JoinString(", "));
         Debug.LogFormat(@"<Simon Sings #{0}> Black key colors: {1}.", _moduleId, blackColors.JoinString(", "));

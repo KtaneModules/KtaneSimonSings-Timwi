@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
+VisualStudioVersion = 15.0.27703.2000
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimonSings", "SimonSings.csproj", "{01BF3FD8-EC3D-FA88-546C-2C1D96E095AD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimonSings.Editor", "SimonSings.Editor.csproj", "{296620FE-4D7B-973D-7CDC-4876AF804E06}"
@@ -22,5 +24,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {24C3A3BE-5627-45BD-85CA-941D85DDA40F}
 	EndGlobalSection
 EndGlobal
