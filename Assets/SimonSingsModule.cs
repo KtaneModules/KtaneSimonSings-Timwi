@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,10 +36,13 @@ public class SimonSingsModule : MonoBehaviour
     private bool _isSolved;
     private Color[] _keyColors;
 
+    private static readonly Color[] _whiteKeyColors = new Color[] {new Color(.6f, .6f, .6f), new Color(1, 0, 0), new Color(0, 1, 0), new Color(0, 0, 1), new Color(1, 1, 0), new Color(1, 0, 1), new Color(0, .8f, .8f), new Color(1, 1, 1), new Color(.82f, .75f, .62f), new Color(.68f, 1, .18f), new Color(.5f, .5f, 1), new Color(1, .72f, .8f), new Color(.4f, .8f, .6f), new Color(.57f, .85f, 1)};
+    private static readonly Color[] _blackKeyColors = new Color[] { new Color(0, 0, .5f), new Color(0, .4f, .4f), new Color(.5f, .5f, 0), new Color(.65f, .34f, 0), new Color(.3f, 0, 0), new Color(.27f, 0, .27f), new Color(0, .23f, 0), new Color(.2f, .2f, .2f), new Color(.5f, .5f, 0) };
     private static readonly string[] _keyNames = @"C,C#,D,D#,E,F,F#,G,G#,A,A#,B".Split(',');
     private static readonly int[] _whiteKeys = new[] { 0, 2, 4, 5, 7, 9, 11 };
     private static readonly int[] _blackKeys = new[] { 1, 3, 6, 8, 10 };
     private static readonly int[] _primes = new[] { 2, 3, 5, 7, 11, 13 };
+    
 
     void Start()
     {
@@ -47,9 +50,12 @@ public class SimonSingsModule : MonoBehaviour
 
         const float minDist = .55f;
 
-        var colors = Enumerable.Range(0, 12).Select(_ => new Color(Rnd.Range(0, 1f), Rnd.Range(0, 1f), Rnd.Range(0, 1f))).ToArray();
+        var white = _whiteKeyColors.ToList();
+        var black = _blackKeyColors.ToList();
 
-        const int iterations = 12;
+        var colors = Enumerable.Range(0, 12).Select(i => i < 5 ? PickRandomFrom(black) : PickRandomFrom(white)).ToArray();
+
+        /* const int iterations = 12;
         for (int iter = 0; iter < iterations; iter++)
         {
             var deltas = new Color[colors.Length];
@@ -81,7 +87,7 @@ public class SimonSingsModule : MonoBehaviour
                     iter = 0;
                 }
             }
-        }
+        } */
 
         for (int i = 0; i < colors.Length; i++)
         {
@@ -91,9 +97,9 @@ public class SimonSingsModule : MonoBehaviour
             colors[i] = Color.HSVToRGB(h, s, v);
         }
 
-        var sorted = colors.OrderBy(c => c.r * .3f + c.g * .6f + c.b * .1f).ToArray();
-        var blackColors = sorted.Subarray(0, 5).Shuffle();
-        var whiteColors = sorted.Subarray(5, 7).Shuffle();
+        // var sorted = colors.OrderBy(c => c.r * .3f + c.g * .6f + c.b * .1f).ToArray();
+        var blackColors = colors.Subarray(0, 5).Shuffle();
+        var whiteColors = colors.Subarray(5, 7).Shuffle();
 
         Debug.LogFormat(@"<Simon Sings #{0}> White key colors: {1}.", _moduleId, whiteColors.JoinString(", "));
         Debug.LogFormat(@"<Simon Sings #{0}> Black key colors: {1}.", _moduleId, blackColors.JoinString(", "));
@@ -317,6 +323,14 @@ public class SimonSingsModule : MonoBehaviour
 
             yield return new WaitForSeconds(1.2f);
         }
+    }
+
+    private Color PickRandomFrom(List<Color> list)
+    {
+        var ix = Rnd.Range(0, list.Count);
+        var result = list[ix];
+        list.RemoveAt(ix);
+        return result;
     }
 
 #pragma warning disable 0414
