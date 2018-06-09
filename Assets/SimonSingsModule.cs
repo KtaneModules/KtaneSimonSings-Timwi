@@ -37,7 +37,7 @@ public class SimonSingsModule : MonoBehaviour
     private Color[] _keyColors;
 
     private static readonly Color[] _whiteKeyColors = new Color[] {new Color(.6f, .6f, .6f), new Color(1, 0, 0), new Color(0, 1, 0), new Color(0, 0, 1), new Color(1, 1, 0), new Color(1, 0, 1), new Color(0, .8f, .8f), new Color(1, 1, 1), new Color(.82f, .75f, .62f), new Color(.68f, 1, .18f), new Color(.5f, .5f, 1), new Color(1, .72f, .8f), new Color(.4f, .8f, .6f), new Color(.57f, .85f, 1)};
-    private static readonly Color[] _blackKeyColors = new Color[] { new Color(0, 0, .5f), new Color(0, .4f, .4f), new Color(.5f, .5f, 0), new Color(.65f, .34f, 0), new Color(.3f, 0, 0), new Color(.27f, 0, .27f), new Color(0, .23f, 0), new Color(.2f, .2f, .2f), new Color(.5f, .5f, 0) };
+    private static readonly Color[] _blackKeyColors = new Color[] { new Color(0, 0, .5f), new Color(0, .4f, .4f), new Color(.65f, .34f, 0), new Color(.3f, 0, 0), new Color(.27f, 0, .27f), new Color(0, .23f, 0), new Color(.2f, .2f, .2f), new Color(.5f, .5f, 0) };
     private static readonly string[] _keyNames = @"C,C#,D,D#,E,F,F#,G,G#,A,A#,B".Split(',');
     private static readonly int[] _whiteKeys = new[] { 0, 2, 4, 5, 7, 9, 11 };
     private static readonly int[] _blackKeys = new[] { 1, 3, 6, 8, 10 };
