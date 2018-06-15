@@ -13,4 +13,5 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   WorkshopPublishedFileID: 1392391174
   Title: Simon Sings
-  Tags: []
+  Tags:
+  - Regular Module
