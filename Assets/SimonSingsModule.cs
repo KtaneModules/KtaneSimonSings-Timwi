@@ -314,12 +314,6 @@ public class SimonSingsModule : MonoBehaviour
 
     private IEnumerable<KMSelectable> ProcessTwitchCommand(string command)
     {
-        if (command == "autosolve")
-        {
-            _isSolved = true;
-            StartCoroutine(solveAnimation(0));
-        }
-
         var keys = new List<KMSelectable>();
         var match = Regex.Match(command.Trim().ToUpperInvariant(),
             "^(?:press |play |submit |sing |)((?:(?:left|right|l|r)[ ,;]?(?:C#?|D[b#]?|Eb?|F#?|G[b#]?|A[b#]?|Bb?)[ ,;]*)+)$",
