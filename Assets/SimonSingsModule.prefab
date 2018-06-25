@@ -197,32 +197,44 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Parent: {fileID: 0}
   Children:
-  - {fileID: 114007227921904162}
-  - {fileID: 114329741305010126}
-  - {fileID: 114923249178131622}
-  - {fileID: 114410310594382382}
-  - {fileID: 114051602669201764}
-  - {fileID: 114004377908117294}
-  - {fileID: 114523862497839712}
-  - {fileID: 114480093309730786}
-  - {fileID: 114260282372714120}
-  - {fileID: 114561552453759732}
-  - {fileID: 114911449393379026}
   - {fileID: 114286881394545978}
+  - {fileID: 114549407392876048}
   - {fileID: 114333662892355702}
+  - {fileID: 114911449393379026}
+  - {fileID: 114549407392876048}
   - {fileID: 114951099224255158}
+  - {fileID: 114561552453759732}
+  - {fileID: 114549407392876048}
   - {fileID: 114916221362220716}
+  - {fileID: 114260282372714120}
+  - {fileID: 114549407392876048}
   - {fileID: 114511030019368708}
+  - {fileID: 114480093309730786}
+  - {fileID: 114549407392876048}
   - {fileID: 114973770247762112}
+  - {fileID: 114523862497839712}
+  - {fileID: 114549407392876048}
   - {fileID: 114731251076228378}
+  - {fileID: 114004377908117294}
+  - {fileID: 114549407392876048}
   - {fileID: 114394046867929500}
+  - {fileID: 114051602669201764}
+  - {fileID: 114549407392876048}
   - {fileID: 114829949168409316}
+  - {fileID: 114410310594382382}
+  - {fileID: 114549407392876048}
   - {fileID: 114804235477659978}
+  - {fileID: 114923249178131622}
+  - {fileID: 114549407392876048}
   - {fileID: 114860497640610804}
+  - {fileID: 114329741305010126}
+  - {fileID: 114549407392876048}
   - {fileID: 114301169319352368}
+  - {fileID: 114007227921904162}
+  - {fileID: 114549407392876048}
   - {fileID: 114005227564841040}
   IsPassThrough: 0
-  ChildRowLength: 1
+  ChildRowLength: 3
   Highlight: {fileID: 11464240}
   SelectableColliders: []
   DefaultSelectableIndex: 0
@@ -297,6 +309,7 @@ MonoBehaviour:
   - {fileID: 114301169319352368}
   - {fileID: 114005227564841040}
   CentralLed: {fileID: 23799377244266726}
+  CentralSelectable: {fileID: 114549407392876048}
   StatusLeds:
   - {fileID: 23184013434433454}
   - {fileID: 23009523363214022}
@@ -843,6 +856,8 @@ GameObject:
   - component: {fileID: 33237150255631036}
   - component: {fileID: 23799377244266726}
   - component: {fileID: 114519315738499896}
+  - component: {fileID: 114549407392876048}
+  - component: {fileID: 135074864072230508}
   m_Layer: 0
   m_Name: CentralLED
   m_TagString: Untagged
@@ -975,6 +990,23 @@ GameObject:
   - component: {fileID: 114060257074045646}
   m_Layer: 0
   m_Name: KeyGHighlight
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!1 &1435626494455494
+GameObject:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 4769329878543854}
+  - component: {fileID: 33036994936299748}
+  - component: {fileID: 114137288587949718}
+  m_Layer: 0
+  m_Name: CentralHighlight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2280,7 +2312,8 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.4, y: 0.4, z: 0.4}
-  m_Children: []
+  m_Children:
+  - {fileID: 4769329878543854}
   m_Father: {fileID: 4076635952492366}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -2338,6 +2371,19 @@ Transform:
   - {fileID: 4169367580023496}
   m_Father: {fileID: 4085904448222882}
   m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &4769329878543854
+Transform:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1435626494455494}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.0376, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 4720924001526436}
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4781650442064430
 Transform:
@@ -4442,6 +4488,13 @@ MeshFilter:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1060293224564450}
   m_Mesh: {fileID: 4300000, guid: 73bab373d3d68134c87b5e3ce913db57, type: 3}
+--- !u!33 &33036994936299748
+MeshFilter:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1435626494455494}
+  m_Mesh: {fileID: 4300000, guid: 9fd23ba97f2460447ad46d5ce95cb559, type: 3}
 --- !u!33 &33072258625810724
 MeshFilter:
   m_ObjectHideFlags: 1
@@ -5399,6 +5452,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShaderNames:
   - KT/Outline
+--- !u!114 &114137288587949718
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1435626494455494}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -706292897, guid: 45b809be76fd7a3468b6f517bced6f28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  HighlightScale: {x: 1, y: 1, z: 1}
+  OutlineAmount: 0
 --- !u!114 &114144190508796752
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -6097,6 +6163,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShaderNames:
   - KT/Mobile/DiffuseTint
+--- !u!114 &114549407392876048
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1352947316400544}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 1702003387, guid: 45b809be76fd7a3468b6f517bced6f28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Parent: {fileID: 11420650}
+  Children: []
+  IsPassThrough: 0
+  ChildRowLength: 0
+  Highlight: {fileID: 114137288587949718}
+  SelectableColliders:
+  - {fileID: 135074864072230508}
+  DefaultSelectableIndex: 0
+  AllowSelectionWrapX: 0
+  AllowSelectionWrapY: 0
+  ForceSelectionHighlight: 0
+  ForceInteractionHighlight: 0
 --- !u!114 &114553380922671254
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -6834,3 +6923,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShaderNames:
   - KT/Outline
+--- !u!135 &135074864072230508
+SphereCollider:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1352947316400544}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Center: {x: 0, y: 0, z: 0}

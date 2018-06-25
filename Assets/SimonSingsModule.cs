@@ -20,6 +20,7 @@ public class SimonSingsModule : MonoBehaviour
 
     public KMSelectable[] Keys;
     public MeshRenderer CentralLed;
+    public KMSelectable CentralSelectable;
     public MeshRenderer[] StatusLeds;
     public Material StatusLitMaterial;
     public Material StatusUnlitMaterial;
@@ -35,6 +36,8 @@ public class SimonSingsModule : MonoBehaviour
     private bool _hasVowel;
     private bool _isSolved;
     private Color[] _keyColors;
+    private float _startedHolding;
+    private Coroutine _holding = null;
 
     private static readonly Color[] _whiteKeyColors = {
         new Color(204/255f, 210/255f, 213/255f),
@@ -100,6 +103,51 @@ public class SimonSingsModule : MonoBehaviour
         _keysToPress = new List<int>();
         initStage(0, 0);
         StartCoroutine(flashing());
+
+        CentralSelectable.OnInteract = startHolding;
+        CentralSelectable.OnInteractEnded = endHolding;
+    }
+
+    private bool startHolding()
+    {
+        if (!_isSolved)
+            _holding = StartCoroutine(holding(Time.time));
+        return false;
+    }
+
+    private void endHolding()
+    {
+        if (_holding != null)
+            StopCoroutine(_holding);
+        _holding = null;
+    }
+
+    private IEnumerator holding(float time)
+    {
+        _startedHolding = time;
+        yield return new WaitForSeconds(.5f);
+        if (_holding != null && _startedHolding == time && !_isSolved)
+        {
+            if (_curStage == 0)
+                Debug.LogFormat(@"[Simon Sings #{0}] Module NOT reset because we’re in Stage 1.", _moduleId);
+            else
+            {
+                Debug.LogFormat(@"[Simon Sings #{0}] MODULE RESET on request.", _moduleId);
+                StartCoroutine(playResetSound(_curStage));
+                _keysToPress.Clear();
+                initStage(0, 0);
+                Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonRelease, CentralSelectable.transform);
+            }
+        }
+    }
+
+    private IEnumerator playResetSound(int oldStage)
+    {
+        for (int i = oldStage * 5; i >= 0; i--)
+        {
+            Audio.PlaySoundAtTransform((i % 2 == 0 ? "Aah" : "Ooh") + i, CentralSelectable.transform);
+            yield return new WaitForSeconds(.1f);
+        }
     }
 
     private static Color normalize(Color c)
@@ -309,18 +357,26 @@ public class SimonSingsModule : MonoBehaviour
     }
 
 #pragma warning disable 0414
-    private readonly string TwitchHelpMessage = "Play your answer with “!{0} play left G# right E”. (Keys are C, C#, D, D#, E, F, F#, G, G#, A, A#, B.)";
+    private readonly string TwitchHelpMessage = "Play your answer with “!{0} play left G# right E”. (Keys are C, C#, D, D#, E, F, F#, G, G#, A, A#, B.) Reset the module with “!{0} reset”.";
 #pragma warning restore 0414
 
-    private IEnumerable<KMSelectable> ProcessTwitchCommand(string command)
+    private IEnumerator ProcessTwitchCommand(string command)
     {
+        if (command.Trim().ToLowerInvariant() == "reset")
+        {
+            yield return null;
+            CentralSelectable.OnInteract();
+            yield return new WaitForSeconds(.6f);
+            CentralSelectable.OnInteractEnded();
+        }
+
         var keys = new List<KMSelectable>();
         var match = Regex.Match(command.Trim().ToUpperInvariant(),
             "^(?:press |play |submit |sing |)((?:(?:left|right|l|r)[ ,;]?(?:C#?|D[b#]?|Eb?|F#?|G[b#]?|A[b#]?|Bb?)[ ,;]*)+)$",
             RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
         if (!match.Success)
-            return null;
+            yield break;
 
         var pieces = match.Groups[1].Value.Trim()
             .Replace("DB", "C#").Replace("EB", "D#").Replace("GB", "F#").Replace("AB", "G#").Replace("BB", "A#")
@@ -337,6 +393,11 @@ public class SimonSingsModule : MonoBehaviour
                     keys.Add(Keys[j + (left ? 0 : 12)]);
         }
 
-        return keys;
+        yield return null;
+        foreach (var key in keys)
+        {
+            key.OnInteract();
+            yield return new WaitForSeconds(.4f);
+        }
     }
 }
