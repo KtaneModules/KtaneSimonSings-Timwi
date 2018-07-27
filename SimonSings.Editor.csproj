@@ -224,6 +224,7 @@
     <None Include="Assets\Shaders\BlendTwoTexturesLitAndUnlit.shader" />
     <None Include="Assets\Shaders\BlendTwoTexturesLitAndUnlitVertexColor.shader" />
     <None Include="Assets\Shaders\BlendTwoTexturesUnlit.shader" />
+    <None Include="Assets\Shaders\KT_3D_Text-Diffuse.shader" />
     <None Include="Assets\Shaders\KT_3D_Text.shader" />
     <None Include="Assets\Shaders\KT_Mobile-Diffuse-tint.shader" />
     <None Include="Assets\Shaders\KT_Mobile-Diffuse.shader" />
