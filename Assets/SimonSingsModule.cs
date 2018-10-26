@@ -337,7 +337,7 @@ public class SimonSingsModule : MonoBehaviour
             for (int i = 0; i < _flashingColors.Length; i++)
             {
                 CentralLed.material.color = _keyColors[_flashingColors[i]];
-                yield return new WaitForSeconds(1.2f);
+                yield return new WaitForSeconds(1.5f);
                 CentralLed.material.color = new Color(0x1e / 255f, 0x1a / 255f, 0x17 / 255f);
                 yield return new WaitForSeconds(.1f);
                 if (_isSolved)
