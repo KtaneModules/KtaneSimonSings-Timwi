@@ -3,9 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using KModkit;
 using SimonSings;
 using UnityEngine;
-
 using Rnd = UnityEngine.Random;
 
 /// <summary>
@@ -17,6 +17,7 @@ public class SimonSingsModule : MonoBehaviour
     public KMBombInfo Bomb;
     public KMBombModule Module;
     public KMAudio Audio;
+    public KMRuleSeedable RuleSeedable;
 
     public KMSelectable[] Keys;
     public MeshRenderer CentralLed;
@@ -30,9 +31,9 @@ public class SimonSingsModule : MonoBehaviour
     private int _curStage;
     private int _subprogress;
     private List<int> _keysToPress;
-    private int[] _flashingColors;
-    private int _firstNumber;
-    private int _secondNumber;
+    private int[][] _flashingColors;
+    private int[] _firstNumber;
+    private int[] _secondNumber;
     private bool _hasVowel;
     private bool _isSolved;
     private Color[] _keyColors;
@@ -67,7 +68,8 @@ public class SimonSingsModule : MonoBehaviour
         new Color(125/255f, 125/255f, 16/255f)
     };
 
-    private static readonly string[] _keyNames = @"C,C#,D,D#,E,F,F#,G,G#,A,A#,B".Split(',');
+    private static readonly string[] _keyNames = @"C,C♯/D♭,D,D♯/E♭,E,F,F♯/G♭,G,G♯/A♭,A,A♯/B♭,B".Split(',');
+    private static readonly string[] _tpKeyNames = @"C,C#,D,D#,E,F,F#,G,G#,A,A#,B".Split(',');
     private static readonly int[] _whiteKeys = new[] { 0, 2, 4, 5, 7, 9, 11 };
     private static readonly int[] _blackKeys = new[] { 1, 3, 6, 8, 10 };
     private static readonly int[] _primes = new[] { 2, 3, 5, 7, 11, 13 };
@@ -79,8 +81,8 @@ public class SimonSingsModule : MonoBehaviour
         var whiteColors = _whiteKeyColors.ToList().Shuffle().Take(7).ToArray();
         var blackColors = _blackKeyColors.ToList().Shuffle().Take(5).ToArray();
 
-        Debug.LogFormat(@"<Simon Sings #{0}> White key colors: {1}.", _moduleId, whiteColors.JoinString(", "));
-        Debug.LogFormat(@"<Simon Sings #{0}> Black key colors: {1}.", _moduleId, blackColors.JoinString(", "));
+        Debug.LogFormat(@"<Simon Sings #{0}> White key colors: {1}.", _moduleId, whiteColors.Join(", "));
+        Debug.LogFormat(@"<Simon Sings #{0}> Black key colors: {1}.", _moduleId, blackColors.Join(", "));
 
         _keyColors = new Color[12];
         for (int i = 0; i < _whiteKeys.Length; i++)
@@ -101,6 +103,7 @@ public class SimonSingsModule : MonoBehaviour
         Debug.LogFormat(@"[Simon Sings #{0}] Serial number {1} a vowel, so start on the {2}.", _moduleId, _hasVowel ? "contains" : "does not contain", _hasVowel ? "left" : "right");
 
         _keysToPress = new List<int>();
+        generatePuzzle();
         initStage(0, 0);
         StartCoroutine(flashing());
 
@@ -153,9 +156,7 @@ public class SimonSingsModule : MonoBehaviour
     private static Color normalize(Color c)
     {
         var d = Mathf.Sqrt(sqr(c.r) + sqr(c.g) + sqr(c.b));
-        if (d == 0)
-            return new Color(0, 0, 0);
-        return new Color(c.r / d, c.g / d, c.b / d);
+        return d == 0 ? new Color(0, 0, 0) : new Color(c.r / d, c.g / d, c.b / d);
     }
 
     private static float clip(float v)
@@ -184,7 +185,7 @@ public class SimonSingsModule : MonoBehaviour
 
             if (i != _keysToPress[_subprogress])
             {
-                Debug.LogFormat(@"[Simon Sings #{0}] Expected: {1}, pressed: {2}. Strike!", _moduleId, keyName(_keysToPress[_subprogress]), keyName(i));
+                Debug.LogFormat(@"[Simon Sings #{0}] Expected: {1}, pressed: {2}. Strike! Back to start of stage {3}.", _moduleId, keyName(_keysToPress[_subprogress]), keyName(i), _curStage + 1);
                 _subprogress = 0;
                 Module.HandleStrike();
             }
@@ -205,9 +206,332 @@ public class SimonSingsModule : MonoBehaviour
         return string.Format("{0} {1}", key >= 12 ? "right" : "left", _keyNames[key % 12]);
     }
 
+    delegate TResult Func<T1, T2, T3, T4, T5, T6, TResult>(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6);
+
+    private class RuleInfo
+    {
+        public string Name;
+
+        // Arguments: 
+        //  (1) (int[]) keys whose colors flashed; 
+        //  (2) (int[]) keys whose colors flashed in the PREVIOUS stage; 
+        //  (3) (int[]) values of the 4-digit numbers in the PREVIOUS stage;
+        //  (4) (List<bool>) previous digit values in THIS stage; 
+        //  (5) (int) index of current digit; 
+        //  (6) (int) current stage
+        public Func<int[], int[], int[], List<bool>, int, int, bool> Evaluate;
+
+        public bool UsesPreviousDigit;
+        public bool IsPrimeNumberRule;
+    }
+
+    private class FallbackInfo
+    {
+        public string Name;
+        public Func<bool> Evaluate;
+    }
+
+    private class ElementInfo
+    {
+        public string Name;
+        public Func<int> Evaluate;
+    }
+
+    static T[] newArray<T>(params T[] array) { return array; }
+
+    void generatePuzzle()
+    {
+        var rnd = RuleSeedable.GetRNG();
+
+        // Generate the rule-seeded rules first
+        var candidateFallbacks = rnd.ShuffleFisherYates(newArray
+        (
+            new FallbackInfo { Name = "There is an odd number of batteries", Evaluate = () => Bomb.GetBatteryCount() % 2 == 1 },
+            new FallbackInfo { Name = "There is an odd number of indicators", Evaluate = () => Bomb.GetIndicators().Count() % 2 == 1 },
+            new FallbackInfo { Name = "There is an odd number of ports", Evaluate = () => Bomb.GetPortCount() % 2 == 1 },
+            new FallbackInfo { Name = "There is an odd number of letters in the serial number", Evaluate = () => Bomb.GetSerialNumberLetters().Count() % 2 == 1 },
+            new FallbackInfo { Name = "There is an odd number of port plates", Evaluate = () => Bomb.GetPortPlateCount() % 2 == 1 },
+            new FallbackInfo { Name = "The first digit of the serial number is odd", Evaluate = () => Bomb.GetSerialNumberNumbers().First() % 2 == 1 },
+            new FallbackInfo { Name = "There is an odd number of distinct port types", Evaluate = () => Bomb.CountUniquePorts() % 2 == 1 },
+            new FallbackInfo { Name = "The last digit of the serial number is odd", Evaluate = () => Bomb.GetSerialNumberNumbers().Last() % 2 == 1 },
+            new FallbackInfo { Name = "There is an odd number of lit indicators", Evaluate = () => Bomb.GetOnIndicators().Count() % 2 == 1 },
+            new FallbackInfo { Name = "There is an odd number of unlit indicators", Evaluate = () => Bomb.GetOffIndicators().Count() % 2 == 1 },
+            new FallbackInfo { Name = "There is an odd number of battery holders", Evaluate = () => Bomb.GetBatteryHolderCount() % 2 == 1 },
+            new FallbackInfo { Name = "There is an even number of batteries", Evaluate = () => Bomb.GetBatteryCount() % 2 == 0 },
+            new FallbackInfo { Name = "The last digit of the serial number is even", Evaluate = () => Bomb.GetSerialNumberNumbers().Last() % 2 == 0 },
+            new FallbackInfo { Name = "The first digit of the serial number is even", Evaluate = () => Bomb.GetSerialNumberNumbers().First() % 2 == 0 },
+            new FallbackInfo { Name = "There is an even number of port plates", Evaluate = () => Bomb.GetPortPlateCount() % 2 == 0 },
+            new FallbackInfo { Name = "There is an even number of indicators", Evaluate = () => Bomb.GetIndicators().Count() % 2 == 0 },
+            new FallbackInfo { Name = "There is an even number of ports", Evaluate = () => Bomb.GetPortCount() % 2 == 0 },
+            new FallbackInfo { Name = "There is an even number of distinct port types", Evaluate = () => Bomb.CountUniquePorts() % 2 == 0 },
+            new FallbackInfo { Name = "There is an even number of letters in the serial number", Evaluate = () => Bomb.GetSerialNumberLetters().Count() % 2 == 0 },
+            new FallbackInfo { Name = "There is an even number of lit indicators", Evaluate = () => Bomb.GetOnIndicators().Count() % 2 == 0 },
+            new FallbackInfo { Name = "There is an even number of unlit indicators", Evaluate = () => Bomb.GetOffIndicators().Count() % 2 == 0 },
+            new FallbackInfo { Name = "There is an even number of battery holders", Evaluate = () => Bomb.GetBatteryHolderCount() % 2 == 0 }
+        ));
+
+        int[] digitOrder = null;
+        int[] keyOrder = null;
+        var fallbackIx = 0;
+        var elementIx = 0;
+        var op = 0;
+        ElementInfo[] candidateElements = null;
+
+        var candidateRules = rnd.ShuffleFisherYates(newArray<Func<int, RuleInfo>>
+        (
+            digit =>
+            {
+                var stage = rnd.Next(0, 3);
+                return new RuleInfo
+                {
+                    Name = string.Format("We are in the {0} stage of the module.", new[] { "first", "third", "second" }[stage]),
+                    Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => st == new[] { 0, 2, 1 }[stage]
+                };
+            },
+
+            digit =>
+            {
+                var fallback = candidateFallbacks[fallbackIx++];
+                var flavour = rnd.Next(0, 2);
+                return new RuleInfo
+                {
+                    Name = string.Format("If this is the {0} digit in its 4-digit binary number: {1}. Otherwise: This number’s {0} color referred to a {2} key.", digit, fallback.Name, new[] { "sharp/flat", "natural" }[flavour]),
+                    Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => ix == digit ? fallback.Evaluate() : _blackKeys.Contains(clrs[digit]) ? flavour == 0 : flavour == 1
+                };
+            },
+
+            digit =>
+            {
+                var fallback = candidateFallbacks[fallbackIx++];
+                var zeroOrOne = (1 - rnd.Next(0, 2));
+                return new RuleInfo
+                {
+                    Name = string.Format("If this is the first of the 8 digits: {0}. Otherwise: The previous digit was {1}.", fallback.Name, zeroOrOne),
+                    Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => ix == 0 ? fallback.Evaluate() : digitsCur[ix - 1] == (zeroOrOne != 0),
+                    UsesPreviousDigit = true
+                };
+            },
+
+            digit =>
+            {
+                var fallback = candidateFallbacks[fallbackIx++];
+                return new RuleInfo
+                {
+                    Name = string.Format("If there are no indicators: {0}. Otherwise: The position of this digit in its 4-digit number matches the number of lit or unlit indicators, whichever is greater.", fallback.Name),
+                    Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => Bomb.GetIndicators().Count() == 0 ? fallback.Evaluate() : (ix % 4 + 1) == Math.Max(Bomb.GetOnIndicators().Count(), Bomb.GetOffIndicators().Count())
+                };
+            },
+
+            digit => new RuleInfo
+            {
+                Name = "The position of this digit in its 4-digit number matches the number of port plates.",
+                Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => (ix % 4 + 1) == Bomb.GetPortPlateCount()
+            },
+
+            digit =>
+            {
+                var fallback = candidateFallbacks[fallbackIx++];
+                var num = rnd.Next(3, 6);
+                var flavour = rnd.Next(0, 2);
+                return new RuleInfo
+                {
+                    Name = string.Format("If we are in the first stage: {0}. Otherwise: exactly {1} colors flashing in the previous stage refer to {2} keys.", fallback.Name, num, new[] { "sharp/flat", "natural" }[flavour]),
+                    Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => st == 0 ? fallback.Evaluate() : clrsPrev.Count(c => _blackKeys.Contains(c) ? flavour == 0 : flavour == 1) == num
+                };
+            },
+
+            digit =>
+            {
+                var fallback = candidateFallbacks[fallbackIx++];
+                return new RuleInfo
+                {
+                    Name = string.Format("If there are no port plates: {0}. Otherwise: The position of this digit in its 4-digit number matches the number of ports on the port plate with the most ports on it.", fallback.Name),
+                    Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => Bomb.GetPortPlateCount() == 0 ? fallback.Evaluate() : (ix % 4 + 1) == Bomb.GetPortPlates().Max(plate => plate.Length)
+                };
+            },
+
+            digit =>
+            {
+                var element = candidateElements[elementIx++];
+                return new RuleInfo
+                {
+                    Name = string.Format("The current stage number matches the number of {0}.", element.Name),
+                    Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => st + 1 == element.Evaluate()
+                };
+            },
+
+            digit =>
+            {
+                var fallback = candidateFallbacks[fallbackIx++];
+                return new RuleInfo
+                {
+                    Name = string.Format("If there are no battery holders: {0}. Otherwise: The position of this digit in its 4-digit number matches the number of batteries.", fallback.Name),
+                    Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => Bomb.GetBatteryHolderCount() == 0 ? fallback.Evaluate() : (ix % 4 + 1) == Bomb.GetBatteryCount()
+                };
+            },
+
+            digit => new RuleInfo
+            {
+                Name = string.Format("This is the {0} or {1} digit in its 4-digit binary number.", new[] { "first", "second", "third", "last" }[digitOrder[0]], new[] { "first", "second", "third", "last" }[digitOrder[1]]),
+                Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => (ix % 4) == digitOrder[0] || (ix % 4) == digitOrder[1]
+            },
+
+            digit => new RuleInfo
+            {
+                Name = string.Format("Another color in this 4-digit number refers to {0} or {1}.", _keyNames[keyOrder[0]], _keyNames[keyOrder[1]]),
+                Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => Enumerable.Range((ix / 4) * 4, 4).Any(i => i != ix && (clrs[i] == keyOrder[0] || clrs[i] == keyOrder[1]))
+            },
+
+            digit => new RuleInfo
+            {
+                Name = "This digit’s number would be a prime number if this digit is 1.",
+                Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => _primes.Contains(Enumerable.Range((ix / 4) * 4, 4).Select(i => i == ix ? true : digitsCur[i]).Aggregate(0, (pr, nx) => (pr << 1) | (nx ? 1 : 0))),
+                IsPrimeNumberRule = true
+            },
+
+            digit =>
+            {
+                var fallback = candidateFallbacks[fallbackIx++];
+                return new RuleInfo
+                {
+                    Name = string.Format(
+                        "If we are in the first stage: {0}. Otherwise: {1} of the 4-digit numbers in the previous stage {2} less than 5.",
+                        fallback.Name,
+                        new[] { "Neither", "One, but not both,", "One (or both)", "Both" }[op],
+                        new[] { "were", "was", "was", "were" }[op]),
+                    Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) =>
+                    {
+                        if (st == 0)
+                            return fallback.Evaluate();
+                        var c = valsPrev.Count(v => v < 5);
+                        return op == 0 ? c == 0 : op == 1 ? c == 1 : op == 2 ? c > 0 : c == 2;
+                    }
+                };
+            },
+
+            digit =>
+            {
+                var stage = rnd.Next(0, 3);
+                return new RuleInfo
+                {
+                    Name = string.Format("We are not in the {0} stage of the module.", new[] { "first", "third", "second" }[stage]),
+                    Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => st != new[] { 0, 2, 1 }[stage]
+                };
+            },
+
+            digit =>
+            {
+                var fallback = candidateFallbacks[fallbackIx++];
+                var flavour = rnd.Next(0, 2);
+                return new RuleInfo
+                {
+                    Name = string.Format("If we are in the first stage: {0}. Otherwise: Two colors flashing consecutively in the previous stage refer to {1} keys.", fallback.Name, new[] { "sharp/flat", "natural" }[flavour]),
+                    Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) =>
+                        st == 0 ? fallback.Evaluate() :
+                        flavour == 0
+                            ? Enumerable.Range(0, 7).Any(i => _blackKeys.Contains(clrsPrev[i]) && _blackKeys.Contains(clrsPrev[i + 1]))
+                            : Enumerable.Range(0, 7).Any(i => _blackKeys.Contains(clrsPrev[i]) && !_blackKeys.Contains(clrsPrev[i + 1]))
+                };
+            },
+
+            digit => new RuleInfo
+            {
+                Name = string.Format("A color in the other 4-digit number refers to {0} or {1}.", _keyNames[keyOrder[2]], _keyNames[keyOrder[3]]),
+                Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => Enumerable.Range((1 - ix / 4) * 4, 4).Any(i => clrs[i] == keyOrder[2] || clrs[i] == keyOrder[3])
+            },
+
+            digit =>
+            {
+                var flavour = rnd.Next(0, 2);
+                return new RuleInfo
+                {
+                    Name = string.Format("The other number’s {0} color referred to a {1} key.", new[] { "third", "second", "first", "fourth" }[digit], new[] { "sharp/flat", "natural" }[flavour]),
+                    Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => _blackKeys.Contains(clrs[(1 - ix / 4) * 4 + new[] { 2, 1, 0, 3 }[digit]]) ? flavour == 0 : flavour == 1
+                };
+            },
+
+            digit => new RuleInfo
+            {
+                Name = string.Format("This is the {0} or {1} digit in its 4-digit binary number.", new[] { "first", "second", "third", "last" }[digitOrder[2]], new[] { "first", "second", "third", "last" }[digitOrder[3]]),
+                Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => (ix % 4) == digitOrder[2] || (ix % 4) == digitOrder[3]
+            }
+        ));
+
+        candidateElements = rnd.ShuffleFisherYates(newArray(
+            new ElementInfo { Name = "batteries", Evaluate = () => Bomb.GetBatteryCount() },
+            new ElementInfo { Name = "battery holders", Evaluate = () => Bomb.GetBatteryHolderCount() },
+            new ElementInfo { Name = "indicators", Evaluate = () => Bomb.GetIndicators().Count() },
+            new ElementInfo { Name = "letters in the serial number minus one", Evaluate = () => Bomb.GetSerialNumberLetters().Count() - 1 },
+            new ElementInfo { Name = "unlit indicators", Evaluate = () => Bomb.GetOffIndicators().Count() },
+            new ElementInfo { Name = "ports", Evaluate = () => Bomb.GetPortCount() },
+            new ElementInfo { Name = "distinct port types", Evaluate = () => Bomb.CountUniquePorts() },
+            new ElementInfo { Name = "port plates", Evaluate = () => Bomb.GetPortPlateCount() },
+            new ElementInfo { Name = "digits in the serial number minus one", Evaluate = () => Bomb.GetSerialNumberNumbers().Count() - 1 },
+            new ElementInfo { Name = "lit indicators", Evaluate = () => Bomb.GetOnIndicators().Count() }
+        ));
+
+        digitOrder = rnd.ShuffleFisherYates(new[] { 3, 1, 0, 2 }.ToArray());
+        keyOrder = rnd.ShuffleFisherYates(new[] { 0, 1, 6, 3, 4, 10, 2, 7, 8, 9, 5, 11 }.ToArray());
+        op = rnd.Next(0, 4);
+
+        var rules = new List<RuleInfo>();
+
+        // Initialize the rules for the keys (rule seed)
+        for (var i = 0; i < 12; i++)
+        {
+            rules.Add(candidateRules[i](rnd.Next(0, 4)));
+            Debug.LogFormat(@"<Simon Sings #{0}> {1} = {2}", _moduleId, _keyNames[i], rules.Last().Name);
+        }
+
+        // There will be 3 stages
+        _flashingColors = new int[3][];
+        _firstNumber = new int[3];
+        _secondNumber = new int[3];
+
+        for (int stage = 0; stage < 3; stage++)
+        {
+            var keys = Enumerable.Range(0, 12).ToList().Shuffle();
+            _flashingColors[stage] = keys.Take(8).ToArray();
+
+            // Prevent a “previous digit” rule from appearing right after a “prime number” rule (special case that would be in conflict)
+            var posPreviousDigitRule = _flashingColors[stage].IndexOf(c => rules[c].UsesPreviousDigit);
+            var posPrimeNumberRule = _flashingColors[stage].IndexOf(c => rules[c].IsPrimeNumberRule);
+            if (posPreviousDigitRule != -1 && posPrimeNumberRule != -1 && posPreviousDigitRule == posPrimeNumberRule + 1)
+            {
+                var t = _flashingColors[stage][posPreviousDigitRule];
+                _flashingColors[stage][posPreviousDigitRule] = _flashingColors[stage][posPrimeNumberRule];
+                _flashingColors[stage][posPrimeNumberRule] = t;
+            }
+
+            var bits = new List<bool>();
+            for (int i = 0; i < _flashingColors[stage].Length; i++)
+            {
+                var rule = rules[_flashingColors[stage][i]];
+                bits.Add(rule.IsPrimeNumberRule ? false : rule.Evaluate(_flashingColors[stage], stage == 0 ? null : _flashingColors[stage - 1], stage == 0 ? null : new[] { _firstNumber[stage - 1], _secondNumber[stage - 1] }, bits, i, stage));
+            }
+
+            for (int i = 0; i < _flashingColors[stage].Length; i++)
+            {
+                var rule = rules[_flashingColors[stage][i]];
+                if (rule.IsPrimeNumberRule)
+                    bits[i] = rule.Evaluate(_flashingColors[stage], stage == 0 ? null : _flashingColors[stage - 1], stage == 0 ? null : new[] { _firstNumber[stage - 1], _secondNumber[stage - 1] }, bits, i, stage);
+            }
+
+            _firstNumber[stage] = bits.Take(4).Aggregate(0, (p, n) => (p << 1) | (n ? 1 : 0));
+            _secondNumber[stage] = bits.Skip(4).Take(4).Aggregate(0, (p, n) => (p << 1) | (n ? 1 : 0));
+
+            _keysToPress.Add((_firstNumber[stage] < 12 ? _firstNumber[stage] : _flashingColors[stage][_firstNumber[stage] - 12]) + (_hasVowel ? 0 : 12));
+            _keysToPress.Add((_secondNumber[stage] < 12 ? _secondNumber[stage] : _flashingColors[stage][_secondNumber[stage] - 12 + 4]) + (_hasVowel ? 12 : 0));
+
+            Debug.LogFormat(@"[Simon Sings #{0}] Stage {1} flashing colors correspond to keys: {2}", _moduleId, stage + 1, _flashingColors[stage].Select(col => _keyNames[col]).Join(", "));
+            Debug.LogFormat(@"[Simon Sings #{0}] Stage {1} solution: {2}", _moduleId, stage + 1, Enumerable.Range(0, 2 * (stage + 1)).Select(k => keyName(_keysToPress[k])).Join(", "));
+        }
+    }
+
     void initStage(int stage, int lastPressed)
     {
         _curStage = stage;
+        _subprogress = 0;
         for (int i = 0; i < StatusLeds.Length; i++)
             StatusLeds[i].material = i < stage ? StatusLitMaterial : StatusUnlitMaterial;
         if (stage == 3)
@@ -218,88 +542,7 @@ public class SimonSingsModule : MonoBehaviour
             StartCoroutine(solveAnimation(lastPressed));
         }
         else
-        {
-            var prevFlashingColors = _flashingColors;
-            var prevFirst = _firstNumber;
-            var prevSecond = _secondNumber;
-
-            var keys = Enumerable.Range(0, 12).ToList().Shuffle();
-            _flashingColors = keys.Take(8).ToArray();
-
-            // Prevent a D from appearing right after a B (special case that would be in conflict)
-            var dPos = Array.IndexOf(_flashingColors, 2);
-            if (dPos > 0 && _flashingColors[dPos - 1] == 11)
-            {
-                _flashingColors[dPos - 1] = 2;
-                _flashingColors[dPos] = 11;
-            }
-
-            var bits = new List<bool>();
-            for (int i = 0; i < _flashingColors.Length; i++)
-            {
-                switch (_flashingColors[i])
-                {
-                    case 0: // C
-                        bits.Add(i == 0 || i == 3 || i == 4 || i == 7);
-                        break;
-                    case 1: // C♯/D♭
-                        bits.Add(i == 1 || i == 2 || i == 5 || i == 6);
-                        break;
-                    case 2: // D
-                        bits.Add(i == 0 ? Bomb.GetSerialNumberNumbers().Last() % 2 != 0 : !bits.Last());
-                        break;
-                    case 3: // D♯/E♭
-                        bits.Add(i % 4 == Bomb.GetPortPlateCount() - 1);
-                        break;
-                    case 4: // E
-                        bits.Add(Bomb.GetPortPlateCount() == 0 ? Bomb.GetBatteryCount() % 2 != 0 : i % 4 == Bomb.GetPortPlates().Max(pp => pp.Length) - 1);
-                        break;
-                    case 5: // F
-                        bits.Add(_curStage == 2);
-                        break;
-                    case 6: // F♯/G♭
-                        bits.Add(_curStage == Bomb.GetSerialNumberLetters().Count() - 2);
-                        break;
-                    case 7: // G
-                        bits.Add(i == 0 || i == 4 ? Bomb.GetIndicators().Count() % 2 != 0 : _blackKeys.Contains(_flashingColors[4 * (i / 4)]));
-                        break;
-                    case 8: // G♯/A♭
-                        bits.Add(_curStage == 0 ? Bomb.GetPortCount() % 2 != 0 : Enumerable.Range(0, 7).Any(ix => _blackKeys.Contains(prevFlashingColors[ix]) && _blackKeys.Contains(prevFlashingColors[ix + 1])));
-                        break;
-                    case 9: // A
-                        bits.Add(_curStage == 0 ? Bomb.GetIndicators().Count() % 2 == 0 : prevFirst < 5 || prevSecond < 5);
-                        break;
-                    case 10:    // A♯/B♭
-                        bits.Add(Enumerable.Range(4 * (i / 4), 4).Any(n => n % 4 != i % 4 && (_flashingColors[n] == 5 || _flashingColors[n] == 6)));
-                        break;
-                    case 11:    // B
-                        bits.Add(false);
-                        break;
-                }
-            }
-
-            for (int i = 0; i < _flashingColors.Length; i++)
-            {
-                if (_flashingColors[i] == 11)
-                {
-                    var curNumber = bits.Skip(4 * (i / 4)).Take(4).Aggregate(0, (p, n) => (p << 1) | (n ? 1 : 0));
-                    var newNumber = curNumber | (1 << (3 - i % 4));
-                    if (_primes.Contains(newNumber))
-                        bits[i] = true;
-                }
-            }
-
-            _firstNumber = bits.Take(4).Aggregate(0, (p, n) => (p << 1) | (n ? 1 : 0));
-            _secondNumber = bits.Skip(4).Take(4).Aggregate(0, (p, n) => (p << 1) | (n ? 1 : 0));
-
-            _keysToPress.Add((_firstNumber < 12 ? _firstNumber : _flashingColors[_firstNumber - 12]) + (_hasVowel ? 0 : 12));
-            _keysToPress.Add((_secondNumber < 12 ? _secondNumber : _flashingColors[_secondNumber - 12 + 4]) + (_hasVowel ? 12 : 0));
-
-            _subprogress = 0;
-
-            Debug.LogFormat(@"[Simon Sings #{0}] Stage {1} flashing colors correspond to keys: {2}", _moduleId, stage + 1, _flashingColors.Select(col => _keyNames[col]).JoinString(", "));
-            Debug.LogFormat(@"[Simon Sings #{0}] Stage {1} solution: {2}", _moduleId, stage + 1, Enumerable.Range(0, 2 * (stage + 1)).Select(k => keyName(_keysToPress[k])).JoinString(", "));
-        }
+            Debug.LogFormat(@"[Simon Sings #{0}] Start of stage {1}.", _moduleId, _curStage + 1);
     }
 
     private IEnumerator solveAnimation(int startAt)
@@ -332,11 +575,11 @@ public class SimonSingsModule : MonoBehaviour
 
     private IEnumerator flashing()
     {
-        while (true)
+        while (_curStage < 3)
         {
-            for (int i = 0; i < _flashingColors.Length; i++)
+            for (int i = 0; _curStage < 3 && i < _flashingColors[_curStage].Length; i++)
             {
-                CentralLed.material.color = _keyColors[_flashingColors[i]];
+                CentralLed.material.color = _keyColors[_flashingColors[_curStage][i]];
                 yield return new WaitForSeconds(1.5f);
                 CentralLed.material.color = new Color(0x1e / 255f, 0x1a / 255f, 0x17 / 255f);
                 yield return new WaitForSeconds(.1f);
@@ -357,7 +600,7 @@ public class SimonSingsModule : MonoBehaviour
     }
 
 #pragma warning disable 0414
-    private readonly string TwitchHelpMessage = "Play your answer with “!{0} play left G# right E”. (Keys are C, C#, D, D#, E, F, F#, G, G#, A, A#, B.) Reset the module with “!{0} reset”.";
+    private readonly string TwitchHelpMessage = "!{0} play left G# right E [keys are C, C#, D, D#, E, F, F#, G, G#, A, A#, B] | !{0} reset";
 #pragma warning restore 0414
 
     private IEnumerator ProcessTwitchCommand(string command)
@@ -388,8 +631,8 @@ public class SimonSingsModule : MonoBehaviour
             left |= piece.StartsWith("L");
             left &= !piece.StartsWith("R");
 
-            for (var j = 0; j < _keyNames.Length; j++)
-                if (piece.EndsWith(_keyNames[j]))
+            for (var j = 0; j < _tpKeyNames.Length; j++)
+                if (piece.EndsWith(_tpKeyNames[j]))
                     keys.Add(Keys[j + (left ? 0 : 12)]);
         }
 
