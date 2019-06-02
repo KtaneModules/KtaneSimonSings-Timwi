@@ -242,6 +242,7 @@ public class SimonSingsModule : MonoBehaviour
     void generatePuzzle()
     {
         var rnd = RuleSeedable.GetRNG();
+        Debug.LogFormat(@"[Simon Sings #{0}] Using rule seed: {1}", _moduleId, rnd.Seed);
 
         // Generate the rule-seeded rules first
         var candidateFallbacks = rnd.ShuffleFisherYates(newArray
@@ -295,8 +296,8 @@ public class SimonSingsModule : MonoBehaviour
                 var flavour = rnd.Next(0, 2);
                 return new RuleInfo
                 {
-                    Name = string.Format("If this is the {0} digit in its 4-digit binary number: {1}. Otherwise: This number’s {0} color referred to a {2} key.", digit, fallback.Name, new[] { "sharp/flat", "natural" }[flavour]),
-                    Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => ix == digit ? fallback.Evaluate() : _blackKeys.Contains(clrs[digit]) ? flavour == 0 : flavour == 1
+                    Name = string.Format("If this is the {0} digit in its 4-digit binary number: {1}. Otherwise: This number’s {0} color referred to a {2} key.", new[] { "third", "second", "first", "fourth" }[digit], fallback.Name, new[] { "sharp/flat", "natural" }[flavour]),
+                    Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => ix % 4 == new[] { 2, 1, 0, 3 }[digit] ? fallback.Evaluate() : _blackKeys.Contains(clrs[4 * (ix / 4) + new[] { 2, 1, 0, 3 }[digit]]) ? flavour == 0 : flavour == 1
                 };
             },
 
@@ -523,7 +524,8 @@ public class SimonSingsModule : MonoBehaviour
             _keysToPress.Add((_firstNumber[stage] < 12 ? _firstNumber[stage] : _flashingColors[stage][_firstNumber[stage] - 12]) + (_hasVowel ? 0 : 12));
             _keysToPress.Add((_secondNumber[stage] < 12 ? _secondNumber[stage] : _flashingColors[stage][_secondNumber[stage] - 12 + 4]) + (_hasVowel ? 12 : 0));
 
-            Debug.LogFormat(@"[Simon Sings #{0}] Stage {1} flashing colors correspond to keys: {2}", _moduleId, stage + 1, _flashingColors[stage].Select(col => _keyNames[col]).Join(", "));
+            Debug.LogFormat(@"[Simon Sings #{0}] Stage {1} flashing: {2}", _moduleId, stage + 1, _flashingColors[stage].Select(col => _keyNames[col]).Join(", "));
+            Debug.LogFormat(@"[Simon Sings #{0}] Stage {1} digits: {2}", _moduleId, stage + 1, bits.Select(b => b ? "1" : "0").Join(", "));
             Debug.LogFormat(@"[Simon Sings #{0}] Stage {1} solution: {2}", _moduleId, stage + 1, Enumerable.Range(0, 2 * (stage + 1)).Select(k => keyName(_keysToPress[k])).Join(", "));
         }
     }
