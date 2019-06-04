@@ -304,7 +304,7 @@ public class SimonSingsModule : MonoBehaviour
             digit =>
             {
                 var fallback = candidateFallbacks[fallbackIx++];
-                var zeroOrOne = (1 - rnd.Next(0, 2));
+                var zeroOrOne = 1 - rnd.Next(0, 2);
                 return new RuleInfo
                 {
                     Name = string.Format("If this is the first of the 8 digits: {0}. Otherwise: The previous digit was {1}.", fallback.Name, zeroOrOne),
@@ -336,7 +336,7 @@ public class SimonSingsModule : MonoBehaviour
                 var flavour = rnd.Next(0, 2);
                 return new RuleInfo
                 {
-                    Name = string.Format("If we are in the first stage: {0}. Otherwise: exactly {1} colors flashing in the previous stage refer to {2} keys.", fallback.Name, num, new[] { "sharp/flat", "natural" }[flavour]),
+                    Name = string.Format("If we are in the first stage: {0}. Otherwise: Exactly {1} colors flashing in the previous stage refer to {2} keys.", fallback.Name, num, new[] { "sharp/flat", "natural" }[flavour]),
                     Evaluate = (clrs, clrsPrev, valsPrev, digitsCur, ix, st) => st == 0 ? fallback.Evaluate() : clrsPrev.Count(c => _blackKeys.Contains(c) ? flavour == 0 : flavour == 1) == num
                 };
             },
@@ -431,7 +431,7 @@ public class SimonSingsModule : MonoBehaviour
                         st == 0 ? fallback.Evaluate() :
                         flavour == 0
                             ? Enumerable.Range(0, 7).Any(i => _blackKeys.Contains(clrsPrev[i]) && _blackKeys.Contains(clrsPrev[i + 1]))
-                            : Enumerable.Range(0, 7).Any(i => _blackKeys.Contains(clrsPrev[i]) && !_blackKeys.Contains(clrsPrev[i + 1]))
+                            : Enumerable.Range(0, 7).Any(i => !_blackKeys.Contains(clrsPrev[i]) && !_blackKeys.Contains(clrsPrev[i + 1]))
                 };
             },
 
@@ -471,8 +471,8 @@ public class SimonSingsModule : MonoBehaviour
             new ElementInfo { Name = "lit indicators", Evaluate = () => Bomb.GetOnIndicators().Count() }
         ));
 
-        digitOrder = rnd.ShuffleFisherYates(new[] { 3, 1, 0, 2 }.ToArray());
-        keyOrder = rnd.ShuffleFisherYates(new[] { 0, 1, 6, 3, 4, 10, 2, 7, 8, 9, 5, 11 }.ToArray());
+        digitOrder = rnd.ShuffleFisherYates(new[] { 3, 1, 0, 2 });
+        keyOrder = rnd.ShuffleFisherYates(new[] { 0, 1, 6, 3, 4, 10, 2, 7, 8, 9, 5, 11 });
         op = rnd.Next(0, 4);
 
         var rules = new List<RuleInfo>();
@@ -495,13 +495,14 @@ public class SimonSingsModule : MonoBehaviour
             _flashingColors[stage] = keys.Take(8).ToArray();
 
             // Prevent a “previous digit” rule from appearing right after a “prime number” rule (special case that would be in conflict)
-            var posPreviousDigitRule = _flashingColors[stage].IndexOf(c => rules[c].UsesPreviousDigit);
-            var posPrimeNumberRule = _flashingColors[stage].IndexOf(c => rules[c].IsPrimeNumberRule);
-            if (posPreviousDigitRule != -1 && posPrimeNumberRule != -1 && posPreviousDigitRule == posPrimeNumberRule + 1)
+            for (int clrIx = 0; clrIx < 11; clrIx++)
             {
-                var t = _flashingColors[stage][posPreviousDigitRule];
-                _flashingColors[stage][posPreviousDigitRule] = _flashingColors[stage][posPrimeNumberRule];
-                _flashingColors[stage][posPrimeNumberRule] = t;
+                if (rules[_flashingColors[stage][clrIx]].IsPrimeNumberRule && rules[_flashingColors[stage][clrIx + 1]].UsesPreviousDigit)
+                {
+                    var t = _flashingColors[stage][clrIx];
+                    _flashingColors[stage][clrIx] = _flashingColors[stage][clrIx + 1];
+                    _flashingColors[stage][clrIx + 1] = t;
+                }
             }
 
             var bits = new List<bool>();
