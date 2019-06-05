@@ -495,7 +495,7 @@ public class SimonSingsModule : MonoBehaviour
             _flashingColors[stage] = keys.Take(8).ToArray();
 
             // Prevent a “previous digit” rule from appearing right after a “prime number” rule (special case that would be in conflict)
-            for (int clrIx = 0; clrIx < 11; clrIx++)
+            for (int clrIx = 0; clrIx < 7; clrIx++)
             {
                 if (rules[_flashingColors[stage][clrIx]].IsPrimeNumberRule && rules[_flashingColors[stage][clrIx + 1]].UsesPreviousDigit)
                 {
@@ -504,6 +504,8 @@ public class SimonSingsModule : MonoBehaviour
                     _flashingColors[stage][clrIx + 1] = t;
                 }
             }
+
+            Debug.LogFormat(@"[Simon Sings #{0}] Stage {1} flashing: {2}", _moduleId, stage + 1, _flashingColors[stage].Select(col => _keyNames[col]).Join(", "));
 
             var bits = new List<bool>();
             for (int i = 0; i < _flashingColors[stage].Length; i++)
@@ -525,7 +527,6 @@ public class SimonSingsModule : MonoBehaviour
             _keysToPress.Add((_firstNumber[stage] < 12 ? _firstNumber[stage] : _flashingColors[stage][_firstNumber[stage] - 12]) + (_hasVowel ? 0 : 12));
             _keysToPress.Add((_secondNumber[stage] < 12 ? _secondNumber[stage] : _flashingColors[stage][_secondNumber[stage] - 12 + 4]) + (_hasVowel ? 12 : 0));
 
-            Debug.LogFormat(@"[Simon Sings #{0}] Stage {1} flashing: {2}", _moduleId, stage + 1, _flashingColors[stage].Select(col => _keyNames[col]).Join(", "));
             Debug.LogFormat(@"[Simon Sings #{0}] Stage {1} digits: {2}", _moduleId, stage + 1, bits.Select(b => b ? "1" : "0").Join(", "));
             Debug.LogFormat(@"[Simon Sings #{0}] Stage {1} solution: {2}", _moduleId, stage + 1, Enumerable.Range(0, 2 * (stage + 1)).Select(k => keyName(_keysToPress[k])).Join(", "));
         }
