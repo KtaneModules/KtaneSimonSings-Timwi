@@ -39,6 +39,7 @@ public class SimonSingsModule : MonoBehaviour
     private Color[] _keyColors;
     private float _startedHolding;
     private Coroutine _holding = null;
+    private bool _animationDone;
 
     private static readonly Color[] _whiteKeyColors = {
         new Color(204/255f, 210/255f, 213/255f),
@@ -137,7 +138,6 @@ public class SimonSingsModule : MonoBehaviour
             {
                 Debug.LogFormat(@"[Simon Sings #{0}] MODULE RESET on request.", _moduleId);
                 StartCoroutine(playResetSound(_curStage));
-                _keysToPress.Clear();
                 initStage(0, 0);
                 Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonRelease, CentralSelectable.transform);
             }
@@ -575,6 +575,8 @@ public class SimonSingsModule : MonoBehaviour
             Keys[(i + startAt) % 24].GetComponent<MeshRenderer>().material.color = _blackKeys.Contains((i + startAt) % 12) ? black : white;
             Keys[(23 - i + startAt) % 24].GetComponent<MeshRenderer>().material.color = _blackKeys.Contains((23 - i + startAt) % 12) ? black : white;
         }
+
+        _animationDone = true;
     }
 
     private IEnumerator flashing()
@@ -646,5 +648,21 @@ public class SimonSingsModule : MonoBehaviour
             key.OnInteract();
             yield return new WaitForSeconds(.4f);
         }
+    }
+
+    IEnumerator TwitchHandleForcedSolve()
+    {
+        for (var stage = _curStage; stage < 3; stage++)
+        {
+            for (var i = _subprogress; i < 2 * (stage + 1); i++)
+            {
+                Keys[_keysToPress[i]].OnInteract();
+                yield return new WaitForSeconds(.25f);
+            }
+            yield return new WaitForSeconds(.25f);
+        }
+
+        while (!_animationDone)
+            yield return true;
     }
 }
