@@ -59,6 +59,9 @@ public class TwitchPlaysID : MonoBehaviour
 	public static bool TimeMode;
 	public static bool ZenMode;
 	
+	private const BindingFlags fieldFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy;
+	private const BindingFlags methodFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+	
 
 	private bool HandleStrike()
 	{
@@ -327,27 +330,27 @@ public class TwitchPlaysID : MonoBehaviour
 		foreach (Component component in allComponents)
 		{
 			System.Type type = component.GetType();
-			MethodInfo method = type.GetMethod("ProcessTwitchCommand", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-			MethodInfo forceSolveMethod = type.GetMethod("TwitchHandleForcedSolve", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+			MethodInfo method = type.GetMethod("ProcessTwitchCommand", methodFlags);
+			MethodInfo forceSolveMethod = type.GetMethod("TwitchHandleForcedSolve", methodFlags);
 			if (method == null && forceSolveMethod == null) continue;
 
 			TwitchCommandComponent = component;
 			ProcessTwitchCommandMethod = method;
 			TwitchForcedSolveMethod = forceSolveMethod;
 
-			TwitchCancelField = type.GetField("TwitchShouldCancelCommand", BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-			TwitchModeField = type.GetField("TwitchPlaysActive", BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-			TwitchTimeModeField = type.GetField("TimeModeActive", BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-			TwitchZenModeField = type.GetField("ZenModeActive", BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+			TwitchCancelField = type.GetDeepField("TwitchShouldCancelCommand", fieldFlags);
+			TwitchModeField = type.GetDeepField("TwitchPlaysActive", fieldFlags);
+			TwitchTimeModeField = type.GetDeepField("TimeModeActive", fieldFlags);
+			TwitchZenModeField = type.GetDeepField("ZenModeActive", fieldFlags);
 
-			TwitchHelpMessageField = type.GetField("TwitchHelpMessage", BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-			TwitchManualCodeField = type.GetField("TwitchManualCode", BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-			TwitchValidCommandsField = type.GetField("TwitchValidCommands", BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+			TwitchHelpMessageField = type.GetDeepField("TwitchHelpMessage", fieldFlags);
+			TwitchManualCodeField = type.GetDeepField("TwitchManualCode", fieldFlags);
+			TwitchValidCommandsField = type.GetDeepField("TwitchValidCommands", fieldFlags);
 
-			TwitchModuleSolveScoreField = type.GetField("TwitchModuleScore", BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-			TwitchModuleStrikeScoreField = type.GetField("TwitchStrikePenalty", BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+			TwitchModuleSolveScoreField = type.GetDeepField("TwitchModuleScore", fieldFlags);
+			TwitchModuleStrikeScoreField = type.GetDeepField("TwitchStrikePenalty", fieldFlags);
 
-			TwitchSkipTimeAllowedField = type.GetField("TwitchPlaysSkipTimeAllowed", BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+			TwitchSkipTimeAllowedField = type.GetDeepField("TwitchPlaysSkipTimeAllowed", fieldFlags);
 
 			SetBool(TwitchModeField, true);
 			SetBool(TwitchTimeModeField, TimeMode);
@@ -798,7 +801,7 @@ public class TwitchPlaysID : MonoBehaviour
 				}
 				else if (SendToTwitchChat(currentString, "[USER_NICK_NAME_HERE]") != SendToTwitchChatResponse.NotHandled)
 				{
-					if (AntiTrollMode && !AnarchyMode) break;
+					if (currentString.StartsWith("antitroll") && AntiTrollMode && !AnarchyMode) break;
 					yield return null;
 					continue;
 				}
@@ -1019,7 +1022,7 @@ public class TwitchPlaysID : MonoBehaviour
 		Match match;
 		float messageDelayTime;
 		// Within the messages, allow variables:
-		// {0} = user’s nickname
+		// {0} = user's nickname
 		// {1} = Code (module number)
 		if (message.RegexMatch(out match, @"^senddelayedmessage ([0-9]+(?:\.[0-9])?) (\S(?:\S|\s)*)$") && float.TryParse(match.Groups[1].Value, out messageDelayTime))
 		{
